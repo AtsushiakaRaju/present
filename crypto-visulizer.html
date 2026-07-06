@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Cryptography Pipeline</title>
+    <style>
+        :root {
+            --bg-dark: #0b0f0e;
+            --panel-bg: #101614;
+            --border: #1e2b27;
+            --text-light: #d8e6df;
+            --text-bright: #ffffff;
+            --text-muted: #7c8d86;
+            --accent: #39ff9d;
+            --accent-dim: #1f8f5c;
+            --btn-hover-text: #031310;
+            --accent-blue: #38bdf8;
+            --accent-green: #39ff9d;
+            --accent-purple: #c084fc;
+            --vault-bg: rgba(255,255,255,0.02);
+            --input-text: #ffffff;
+            --mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+        }
+        [data-theme="light"] {
+            --bg-dark: #f4f6f5;
+            --panel-bg: #ffffff;
+            --border: #cbd5d0;
+            --text-light: #2a3632;
+            --text-bright: #101614;
+            --text-muted: #5a6b65;
+            --accent: #009955;
+            --accent-dim: #1f8f5c;
+            --btn-hover-text: #ffffff;
+            --accent-blue: #0284c7;
+            --accent-green: #009955;
+            --accent-purple: #9333ea;
+            --vault-bg: rgba(0,0,0,0.02);
+            --input-text: #101614;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--text-light); 
+            padding: 2rem; 
+            font-family: var(--mono);
+            background-image:
+              radial-gradient(circle at 20% 0%, rgba(57,255,157,0.05), transparent 40%),
+              radial-gradient(circle at 80% 20%, rgba(57,255,157,0.04), transparent 35%);
+        }
+        
+        header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 1rem; }
+        header h1 { color: var(--text-bright); font-size: 2.2rem; }
+        header p { color: var(--text-muted); margin-top: 0.5rem; }
+
+        .nav-tabs { display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem; }
+        .tab-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; font-size: 12px; }
+        .tab-btn.active, .tab-btn:hover { background: var(--accent); color: var(--btn-hover-text); font-weight: bold; border-color: var(--accent); }
+
+        .visual-container { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 2rem; min-height: 450px; display: none; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+        .visual-container.active { display: block; }
+
+        /* Pipeline Visualizer Layout */
+        .pipeline-flow { display: flex; align-items: center; justify-content: space-between; margin-top: 3rem; position: relative; }
+        .node { background: var(--bg-dark); border: 2px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; width: 22%; text-align: center; min-height: 120px; display: flex; flex-direction: column; justify-content: center; z-index: 2; transition: all 0.3s ease; }
+        .node h4 { margin-bottom: 0.5rem; color: var(--accent-blue); }
+        .node p { font-family: monospace; font-size: 0.9rem; word-break: break-all; color: var(--text-muted); }
+        
+        .arrow-stream { flex-grow: 1; height: 6px; background: var(--border); position: relative; overflow: hidden; margin: 0 -5px; }
+        .pulse-particle { position: absolute; width: 20px; height: 100%; background: linear-gradient(90deg, transparent, var(--accent-blue), transparent); left: -20px; }
+        .active-stream .pulse-particle { animation: flow 1.5s infinite linear; }
+        
+        /* Key Display */
+        .key-vault { text-align: center; margin: 1.5rem 0; padding: 1rem; background: var(--vault-bg); border-radius: 0.5rem; border: 1px dashed var(--border); }
+        .key-badge { inline-size: max-content; margin: 0.5rem auto; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-weight: bold; font-family: monospace; }
+        .sym-key { background: rgba(74, 222, 128, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .pub-key { background: rgba(56, 189, 248, 0.2); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+        .priv-key { background: rgba(192, 132, 252, 0.2); color: var(--accent-purple); border: 1px solid var(--accent-purple); }
+
+        /* Controls */
+        .interactive-panel { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-top: 1rem; }
+        .input-box { background: var(--bg-dark); border: 1px solid var(--border); color: var(--input-text); padding: 0.75rem; border-radius: 4px; width: 300px; text-align: center; font-family: var(--mono); font-size: 13px; }
+        .action-btn { background: transparent; border: 1px solid var(--accent-dim); color: var(--accent); padding: 9px 18px; border-radius: 4px; cursor: pointer; font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; transition: .15s; font-weight: normal; }
+        .action-btn:hover { background: var(--accent); color: var(--btn-hover-text); border-color: var(--accent); opacity: 1; }
+        .action-btn.secondary { border-color: var(--border); color: var(--text-muted); }
+        .action-btn.secondary:hover { background: var(--border); color: var(--text-light); }
+
+        /* Handshake Architecture styles */
+        .handshake-grid { display: flex; justify-content: space-between; height: 320px; margin-top: 1rem; position: relative; }
+        .actor { width: 120px; background: var(--bg-dark); border: 2px solid var(--border); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; }
+        .actor-browser { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .actor-server { border-color: var(--accent-purple); color: var(--accent-purple); }
+        .handshake-timeline { flex-grow: 1; position: relative; margin: 0 2rem; border-left: 2px dashed var(--border); border-right: 2px dashed var(--border); }
+        
+        .signal-line { position: absolute; height: 35px; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-blue); border-radius: 4px; left: 0; width: 100%; display: flex; align-items: center; padding: 0 1rem; font-size: 0.85rem; opacity: 0; transform: translateY(20px); transition: all 0.5s ease; color: var(--accent-blue); }
+        .signal-line.server-to-client { border-color: var(--accent-purple); color: var(--accent-purple); background: rgba(192, 132, 252, 0.15); text-align: right; justify-content: flex-end; }
+        .signal-line.active { opacity: 1; transform: translateY(0); }
+
+        @keyframes flow {
+            0% { left: -20px; }
+            100% { left: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header style="display:flex; justify-content:space-between; align-items:flex-start; text-align:left;">
+        <div>
+            <h1>Web Cryptography Engine Visualizer</h1>
+            <p>A live view of data transformations executing through the browser's Web Crypto API primitives.</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:flex-start;">
+            <button class="action-btn secondary" onclick="window.open('index.html', '_blank')">Back to Demo Console</button>
+            <button class="action-btn" onclick="toggleTheme()">Toggle Theme</button>
+        </div>
+    </header>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('symmetric')">Symmetric (AES Pipeline)</button>
+        <button class="tab-btn" onclick="switchTab('asymmetric')">Asymmetric (RSA Pipeline)</button>
+        <button class="tab-btn" onclick="switchTab('handshake')">HTTPS / TLS Handshake Simulator</button>
+    </div>
+
+    <!-- SYMMETRIC PIPELINE -->
+    <div id="symmetric" class="visual-container active">
+        <div class="interactive-panel">
+            <input type="text" id="symInput" class="input-box" value="Confidential Payload">
+            <button class="action-btn" onclick="runSymmetricVisual()">Execute Core Iteration</button>
+        </div>
+        <div class="key-vault">
+            <p>Shared Secret Status:</p>
+            <div class="key-badge sym-key">AES-GCM Shared Key: [Static 256-bit Vector]</div>
+        </div>
+        <div class="pipeline-flow">
+            <div class="node" id="symNode1">
+                <h4>Plaintext Input</h4>
+                <p id="symText1">Confidential Payload</p>
+            </div>
+            <div class="arrow-stream" id="symStream1"><div class="pulse-particle"></div></div>
+            <div class="node" id="symNode2">
+                <h4>Encryption Cipher</h4>
+                <p id="symText2">Unprocessed</p>
+            </div>
+            <div class="arrow-stream" id="symStream2"><div class="pulse-particle"></div></div>
+            <div class="node" id="symNode3">
+                <h4>Decryption Engine</h4>
+                <p id="symText3">Unprocessed</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ASYMMETRIC PIPELINE -->
+    <div id="asymmetric" class="visual-container">
+        <div class="interactive-panel">
+            <input type="text" id="asymInput" class="input-box" value="Secret Key Seed">
+            <button class="action-btn" onclick="runAsymmetricVisual()">Execute Key Exchange Flow</button>
+        </div>
+        <div class="key-vault">
+            <p>Mathematically Linked Cryptographic Pair:</p>
+            <div style="display: flex; justify-content: center; gap: 1rem;">
+                <div class="key-badge pub-key">Public Key (Open Access)</div>
+                <div class="key-badge priv-key">Private Key (Restricted to Owner)</div>
+            </div>
+        </div>
+        <div class="pipeline-flow">
+            <div class="node" id="asymNode1">
+                <h4>Data Input</h4>
+                <p id="asymText1">Secret Key Seed</p>
+            </div>
+            <div class="arrow-stream" id="asymStream1"><div class="pulse-particle"></div></div>
+            <div class="node" id="asymNode2">
+                <h4>Public Key Lock</h4>
+                <p id="asymText2">Unprocessed</p>
+            </div>
+            <div class="arrow-stream" id="asymStream2"><div class="pulse-particle"></div></div>
+            <div class="node" id="asymNode3">
+                <h4>Private Key Release</h4>
+                <p id="asymText3">Unprocessed</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- HANDSHAKE SIMULATOR -->
+    <div id="handshake" class="visual-container">
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <button class="action-btn" onclick="nextHandshakeStep()">Advance Architecture Step</button>
+            <button class="action-btn secondary" onclick="resetHandshake()">Reset Flow</button>
+        </div>
+        <div class="handshake-grid">
+            <div class="actor actor-browser">🖥️ Client<br>(Browser)</div>
+            <div class="handshake-timeline">
+                <div class="signal-line" id="step1" style="top: 10px;">1. ClientHello ➔ (Supported Cipher Architecture Suites)</div>
+                <div class="signal-line server-to-client" id="step2" style="top: 70px;">2. ServerHello ➔ (Selected Parameters + Public RSA Certificate)</div>
+                <div class="signal-line" id="step3" style="top: 130px;">3. Key Exchange Verification ➔ (Browser verifies TLS Certificate authority)</div>
+                <div class="signal-line" id="step4" style="top: 190px;">4. Key Encapsulation ➔ (Client generates & encrypts Symmetric Session Key)</div>
+                <div class="signal-line server-to-client" id="step5" style="top: 250px;">5. Secured Encrypted Tunnel Up ➔ (Both read/write fast via symmetric AES)</div>
+            </div>
+            <div class="actor actor-server">🔏 Server<br>(Backend Target)</div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            if (current === 'light') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        }
+        function switchTab(tabId) {
+            document.querySelectorAll('.visual-container').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function runSymmetricVisual() {
+            const val = document.getElementById('symInput').value;
+            document.getElementById('symText1').innerText = val;
+            
+            // Trigger flow animations
+            document.getElementById('symStream1').classList.add('active-stream');
+            
+            setTimeout(() => {
+                document.getElementById('symText2').innerText = btoa(val).substring(0, 16) + "... [Encrypted]";
+                document.getElementById('symNode2').style.borderColor = "var(--accent-green)";
+                document.getElementById('symStream2').classList.add('active-stream');
+            }, 1500);
+
+            setTimeout(() => {
+                document.getElementById('symText3').innerText = val + " [Decrypted]";
+                document.getElementById('symNode3').style.borderColor = "var(--accent-green)";
+            }, 3000);
+        }
+
+        function runAsymmetricVisual() {
+            const val = document.getElementById('asymInput').value;
+            document.getElementById('asymText1').innerText = val;
+            
+            document.getElementById('asymStream1').classList.add('active-stream');
+            
+            setTimeout(() => {
+                document.getElementById('asymText2').innerText = "0x8F3A... " + btoa(val).split('').reverse().join('').substring(0,8);
+                document.getElementById('asymNode2').style.borderColor = "var(--accent-blue)";
+                document.getElementById('asymStream2').classList.add('active-stream');
+            }, 1500);
+
+            setTimeout(() => {
+                document.getElementById('asymText3').innerText = val + " [Verified Match]";
+                document.getElementById('asymNode3').style.borderColor = "var(--accent-purple)";
+            }, 3000);
+        }
+
+        let currentHandshakeStep = 0;
+        function nextHandshakeStep() {
+            currentHandshakeStep++;
+            if(currentHandshakeStep <= 5) {
+                document.getElementById(`step${currentHandshakeStep}`).classList.add('active');
+            }
+        }
+
+        function resetHandshake() {
+            currentHandshakeStep = 0;
+            for(let i=1; i<=5; i++) {
+                document.getElementById(`step${i}`).classList.remove('active');
+            }
+            // Reset pipelines too
+            document.querySelectorAll('.arrow-stream').forEach(s => s.classList.remove('active-stream'));
+            document.querySelectorAll('.node').forEach(n => n.style.borderColor = "var(--border)");
+        }
+    </script>
+</body>
+</html>

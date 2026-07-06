@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cryptography &amp; Web Security — Live Demo</title>
+<style>
+  :root{
+    --bg: #0b0f0e;
+    --panel: #101614;
+    --line: #1e2b27;
+    --text: #d8e6df;
+    --text-bright: #ffffff;
+    --dim: #7c8d86;
+    --accent: #39ff9d;
+    --accent-dim: #1f8f5c;
+    --warn: #ff5d5d;
+    --input-bg: #0b0f0e;
+    --out-bg: #070a09;
+    --btn-hover-text: #031310;
+    --mono: 'JetBrains Mono','Fira Code','Consolas',monospace;
+  }
+  [data-theme="light"] {
+    --bg: #f4f6f5;
+    --panel: #ffffff;
+    --line: #cbd5d0;
+    --text: #2a3632;
+    --text-bright: #101614;
+    --dim: #5a6b65;
+    --accent: #009955;
+    --accent-dim: #1f8f5c;
+    --warn: #d32f2f;
+    --input-bg: #fdfdfd;
+    --out-bg: #eaeeec;
+    --btn-hover-text: #ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--mono);
+    margin:0;
+    padding:0 0 80px 0;
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(57,255,157,0.05), transparent 40%),
+      radial-gradient(circle at 80% 20%, rgba(57,255,157,0.04), transparent 35%);
+  }
+  header{
+    padding:40px 32px 24px;
+    border-bottom:1px solid var(--line);
+  }
+  header .tag{
+    color:var(--accent);
+    font-size:12px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+  }
+  header h1{
+    margin:8px 0 4px;
+    font-size:28px;
+    color:var(--text-bright);
+    letter-spacing:0.5px;
+  }
+  header p{color:var(--dim); font-size:13px; margin:0;}
+  .wrap{max-width:900px; margin:0 auto; padding:0 24px;}
+  nav{
+    display:flex; flex-wrap:wrap; gap:8px;
+    max-width:900px; margin:20px auto 0; padding:0 24px;
+  }
+  nav a{
+    color:var(--dim); text-decoration:none; font-size:12px;
+    border:1px solid var(--line); padding:6px 12px; border-radius:3px;
+  }
+  nav a:hover{color:var(--accent); border-color:var(--accent-dim);}
+  section{
+    margin:40px auto; padding:24px 28px;
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    max-width:900px;
+  }
+  section .num{
+    color:var(--accent-dim); font-size:12px; letter-spacing:2px;
+  }
+  section h2{
+    margin:4px 0 6px; color:var(--text-bright); font-size:19px;
+  }
+  label{display:block; font-size:12px; color:var(--dim); margin:14px 0 6px;}
+  input[type=text], textarea, select{
+    width:100%; background:var(--input-bg); border:1px solid var(--line);
+    color:var(--text); padding:10px 12px; border-radius:4px;
+    font-family:var(--mono); font-size:13px;
+  }
+  textarea{resize:vertical; min-height:60px;}
+  button{
+    margin-top:14px; background:transparent; border:1px solid var(--accent-dim);
+    color:var(--accent); padding:9px 18px; border-radius:4px; cursor:pointer;
+    font-family:var(--mono); font-size:12px; letter-spacing:1px;
+    text-transform:uppercase; transition:.15s;
+  }
+  button:hover{background:var(--accent); color:var(--btn-hover-text); border-color:var(--accent);}
+  button.secondary{border-color:var(--line); color:var(--dim);}
+  button.secondary:hover{background:var(--line); color:var(--text);}
+  .out{
+    margin-top:14px; background:var(--out-bg); border:1px solid var(--line);
+    border-radius:4px; padding:12px 14px; font-size:12px;
+    white-space:pre-wrap; word-break:break-all; color:var(--accent);
+    min-height:20px;
+  }
+  .out.warn{color:var(--warn);}
+  .row{display:flex; gap:16px; flex-wrap:wrap;}
+  .row > div{flex:1; min-width:220px;}
+  .step{color:var(--dim); font-size:12px; margin:4px 0;}
+  .step b{color:var(--text);}
+  footer{
+    text-align:center; color:var(--dim); font-size:11px; margin-top:60px;
+  }
+  hr{border:none; border-top:1px solid var(--line); margin:18px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap" style="display:flex; justify-content:space-between; align-items:flex-start; gap: 20px;">
+    <div>
+      <div class="tag">S4118 · Web Security · Unit I</div>
+      <h1>Cryptography &amp; the Web — Live Demo Console</h1>
+      <p>Everything below runs for real, in this browser tab, using the browser's built-in Web Crypto API. No servers, no fake numbers.</p>
+    </div>
+    <div style="display:flex; gap:10px; align-items:flex-start;">
+      <button class="secondary" onclick="window.open('crypto-visulizer.html', '_blank')" style="margin-top:0; white-space:nowrap;">Open Visualizer</button>
+      <button onclick="toggleTheme()" style="margin-top:0; white-space:nowrap;">Toggle Theme</button>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <a href="#caesar">1. Caesar Cipher</a>
+  <a href="#aes">2. AES (Symmetric)</a>
+  <a href="#rsa">3. RSA (Asymmetric)</a>
+  <a href="#hash">4. Password Hashing</a>
+  <a href="#sign">5. Digital Signatures</a>
+  <a href="#exchange">6. Class Exchange</a>
+</nav>
+
+<section id="caesar">
+  <div class="num">01 / WARM-UP</div>
+  <h2>Caesar Cipher</h2>
+  <label>Message</label>
+  <input type="text" id="caesarMsg" value="HELLO WORLD">
+  <label>Shift</label>
+  <input type="text" id="caesarShift" value="3">
+  <button onclick="doCaesar()">Encrypt</button>
+  <button class="secondary" onclick="bruteCaesar()">Brute-force all 26 shifts</button>
+  <div class="out" id="caesarOut"></div>
+</section>
+
+<section id="aes">
+  <div class="num">02 / SYMMETRIC CRYPTOGRAPHY</div>
+  <h2>AES-256-GCM</h2>
+  <label>Message to encrypt</label>
+  <textarea id="aesMsg">Meet at 6pm near the lab</textarea>
+  <button onclick="genAesKey()">1. Generate random AES key</button>
+  <button onclick="doAesEncrypt()">2. Encrypt</button>
+  <button class="secondary" onclick="doAesDecrypt()">3. Decrypt</button>
+  <div class="out" id="aesOut"></div>
+</section>
+
+<section id="rsa">
+  <div class="num">03 / ASYMMETRIC CRYPTOGRAPHY</div>
+  <h2>RSA-2048</h2>
+  <label>Message to encrypt</label>
+  <textarea id="rsaMsg">This message can only be read by the private key holder</textarea>
+  <button onclick="genRsaKeys()">1. Generate keypair</button>
+  <button onclick="doRsaEncrypt()">2. Encrypt with PUBLIC key</button>
+  <button class="secondary" onclick="doRsaDecrypt()">3. Decrypt with PRIVATE key</button>
+  <div class="out" id="rsaOut"></div>
+</section>
+
+<section id="hash">
+  <div class="num">04 / ONE-WAY FUNCTIONS</div>
+  <h2>Password Hashing + Salting</h2>
+  <label>Fake password (say it out loud first)</label>
+  <input type="text" id="hashMsg" value="password123">
+  <button onclick="doHash()">Hash it (SHA-256 + random salt)</button>
+  <button class="secondary" onclick="doHash()">Hash the SAME password again</button>
+  <div class="out" id="hashOut"></div>
+</section>
+
+<section id="sign">
+  <div class="num">05 / DIGITAL IDENTIFICATION</div>
+  <h2>Digital Signatures</h2>
+  <label>Message to sign</label>
+  <textarea id="signMsg">This update is authentic</textarea>
+  <button onclick="doSign()">1. Sign with PRIVATE key</button>
+  <button class="secondary" onclick="doVerify(false)">2. Verify (unmodified)</button>
+  <button class="secondary" onclick="doVerify(true)">3. Tamper 1 character, then verify</button>
+  <div class="out" id="signOut"></div>
+</section>
+
+<section id="exchange">
+  <div class="num">06 / CLOSER — PICK TWO CLASSMATES</div>
+  <h2>Encrypted Message Exchange</h2>
+  <button onclick="genRsaKeys()">Classmate A: generate keypair</button>
+  <label>Classmate B: message to send A</label>
+  <textarea id="exMsg">Hey, this is a secret only you can read</textarea>
+  <button onclick="doExEncrypt()">B: Encrypt with A's public key</button>
+  <button class="secondary" onclick="doExDecrypt()">A: Decrypt with private key</button>
+  <div class="out" id="exOut"></div>
+</section>
+
+<footer class="wrap">Built for a 1-hour Web Security session · S4118 Unit I — Cryptography and the Web</footer>
+
+<script>
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  if (current === 'light') {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+}
+let aesKey, rsaKeyPair, rsaEncryptedBuf, signatureBuf, exEncryptedBuf;
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+function toHex(buf){
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function hexToBuf(hex){
+  const arr = new Uint8Array(hex.match(/.{1,2}/g).map(b=>parseInt(b,16)));
+  return arr.buffer;
+}
+
+// 1. Caesar
+function caesarShift(str, shift){
+  shift = ((shift % 26) + 26) % 26;
+  return str.replace(/[a-zA-Z]/g, c=>{
+    const base = c <= 'Z' ? 65 : 97;
+    return String.fromCharCode((c.charCodeAt(0) - base + shift) % 26 + base);
+  });
+}
+function doCaesar(){
+  const msg = document.getElementById('caesarMsg').value;
+  const shift = parseInt(document.getElementById('caesarShift').value || '0');
+  document.getElementById('caesarOut').textContent = `Shift ${shift}: ${caesarShift(msg, shift)}`;
+}
+function bruteCaesar(){
+  const msg = document.getElementById('caesarMsg').value;
+  let lines = [];
+  for(let s=0; s<26; s++){
+    lines.push(`shift ${String(s).padStart(2,' ')}: ${caesarShift(msg, s)}`);
+  }
+  document.getElementById('caesarOut').textContent = lines.join('\n');
+}
+
+// 2. AES
+async function genAesKey(){
+  aesKey = await crypto.subtle.generateKey({name:'AES-GCM', length:256}, true, ['encrypt','decrypt']);
+  const raw = await crypto.subtle.exportKey('raw', aesKey);
+  document.getElementById('aesOut').textContent = `AES-256 key generated (shown only for teaching purposes):\n${toHex(raw)}`;
+}
+let aesIv, aesCipher;
+async function doAesEncrypt(){
+  if(!aesKey){ document.getElementById('aesOut').textContent='Generate a key first.'; return; }
+  aesIv = crypto.getRandomValues(new Uint8Array(12));
+  const msg = document.getElementById('aesMsg').value;
+  aesCipher = await crypto.subtle.encrypt({name:'AES-GCM', iv:aesIv}, aesKey, enc.encode(msg));
+  document.getElementById('aesOut').textContent = `Ciphertext (hex):\n${toHex(aesCipher)}`;
+}
+async function doAesDecrypt(){
+  if(!aesCipher){ document.getElementById('aesOut').textContent='Encrypt something first.'; return; }
+  const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:aesIv}, aesKey, aesCipher);
+  document.getElementById('aesOut').textContent = `Decrypted with the SAME key:\n${dec.decode(plain)}`;
+}
+
+// 3. RSA
+async function genRsaKeys(){
+  rsaKeyPair = await crypto.subtle.generateKey(
+    {name:'RSA-OAEP', modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:'SHA-256'},
+    true, ['encrypt','decrypt']
+  );
+  const pub = await crypto.subtle.exportKey('spki', rsaKeyPair.publicKey);
+  document.getElementById('rsaOut').textContent = `Keypair generated.\nPublic key (share this openly):\n${toHex(pub).slice(0,120)}...`;
+  document.getElementById('exOut').textContent = `Classmate A's keypair ready. Public key shared.`;
+}
+async function doRsaEncrypt(){
+  if(!rsaKeyPair){ document.getElementById('rsaOut').textContent='Generate a keypair first.'; return; }
+  const msg = document.getElementById('rsaMsg').value;
+  rsaEncryptedBuf = await crypto.subtle.encrypt({name:'RSA-OAEP'}, rsaKeyPair.publicKey, enc.encode(msg));
+  document.getElementById('rsaOut').textContent = `Encrypted with PUBLIC key:\n${toHex(rsaEncryptedBuf).slice(0,200)}...`;
+}
+async function doRsaDecrypt(){
+  if(!rsaEncryptedBuf){ document.getElementById('rsaOut').textContent='Encrypt something first.'; return; }
+  const plain = await crypto.subtle.decrypt({name:'RSA-OAEP'}, rsaKeyPair.privateKey, rsaEncryptedBuf);
+  document.getElementById('rsaOut').textContent = `Decrypted with PRIVATE key:\n${dec.decode(plain)}`;
+}
+
+// 4. Hashing with salt
+async function doHash(){
+  const pw = document.getElementById('hashMsg').value;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const data = new Uint8Array([...salt, ...enc.encode(pw)]);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  const prev = document.getElementById('hashOut').textContent;
+  document.getElementById('hashOut').textContent =
+    (prev ? prev + '\n\n' : '') +
+    `password: "${pw}"\nsalt:  ${toHex(salt.buffer)}\nhash:  ${toHex(digest)}`;
+}
+
+// 5. Signatures
+async function doSign(){
+  if(!rsaKeyPair || !rsaKeyPair.publicKey.usages){ /* need signing keys, generate separately */ }
+  window._signKeyPair = window._signKeyPair || await crypto.subtle.generateKey(
+    {name:'RSA-PSS', modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:'SHA-256'},
+    true, ['sign','verify']
+  );
+  const msg = document.getElementById('signMsg').value;
+  window._signedMsg = msg;
+  signatureBuf = await crypto.subtle.sign({name:'RSA-PSS', saltLength:32}, window._signKeyPair.privateKey, enc.encode(msg));
+  document.getElementById('signOut').textContent = `Signed with PRIVATE key.\nSignature (hex):\n${toHex(signatureBuf).slice(0,160)}...`;
+}
+async function doVerify(tamper){
+  if(!signatureBuf || !window._signKeyPair){ document.getElementById('signOut').textContent='Sign a message first.'; return; }
+  let msg = window._signedMsg;
+  if(tamper){
+    msg = msg.slice(0,-1) + (msg.slice(-1) === 'x' ? 'y' : 'x');
+  }
+  const valid = await crypto.subtle.verify({name:'RSA-PSS', saltLength:32}, window._signKeyPair.publicKey, signatureBuf, enc.encode(msg));
+  const el = document.getElementById('signOut');
+  el.textContent = `Checked message: "${msg}"\nSignature valid? ${valid ? 'YES ✔ — untampered' : 'NO ✘ — tampering detected'}`;
+  el.className = valid ? 'out' : 'out warn';
+}
+
+// 6. Exchange
+async function doExEncrypt(){
+  if(!rsaKeyPair){ document.getElementById('exOut').textContent='Classmate A must generate a keypair first (button above).'; return; }
+  const msg = document.getElementById('exMsg').value;
+  exEncryptedBuf = await crypto.subtle.encrypt({name:'RSA-OAEP'}, rsaKeyPair.publicKey, enc.encode(msg));
+  document.getElementById('exOut').textContent = `B encrypted using A's PUBLIC key:\n${toHex(exEncryptedBuf).slice(0,200)}...\n\n(Anyone watching this screen sees only ciphertext.)`;
+}
+async function doExDecrypt(){
+  if(!exEncryptedBuf){ document.getElementById('exOut').textContent='B needs to encrypt a message first.'; return; }
+  const plain = await crypto.subtle.decrypt({name:'RSA-OAEP'}, rsaKeyPair.privateKey, exEncryptedBuf);
+  document.getElementById('exOut').textContent = `A decrypted with the PRIVATE key (never shared):\n"${dec.decode(plain)}"`;
+}
+</script>
+</body>
+</html>
